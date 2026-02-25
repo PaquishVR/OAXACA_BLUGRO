@@ -1732,8 +1732,17 @@ included in these comparisons</p>
 <p>The information of the audios goes as follows:</p>
 <div id="oax-eurhyncha" class="section level3">
 <h3>OAX (eurhyncha)</h3>
-<div id="waveform" style="width: 100%; height: 128px;"></div>
-<div id="spectrogram" style="width: 100%; height: 256px;"></div>
+<div id="waveform" style="width: 100%; height: 128px; border: 2px solid red; background-color: #f0f0f0;">
+  <p style="margin: 0; padding: 10px; color: red;">Waveform will appear here...</p>
+</div>
+
+<div id="spectrogram" style="width: 100%; height: 256px; border: 2px solid blue; background-color: #e0e0e0;">
+  <p style="margin: 0; padding: 10px; color: blue;">Spectrogram will appear here...</p>
+</div>
+
+<div id="status" style="width: 100%; padding: 10px; background-color: #ffffcc; border: 1px solid orange; margin-top: 10px;">
+  <p id="statusText">Loading...</p>
+</div>
 
 <script>/*!
  * wavesurfer.js 6.6.4 (2023-06-10)
@@ -1751,30 +1760,61 @@ included in these comparisons</p>
 //# sourceMappingURL=wavesurfer.spectrogram.min.js.map</script>
 
 <script>
+  function updateStatus(message) {
+    console.log(message);
+    document.getElementById('statusText').textContent = message;
+  }
+
+  // Check if libraries loaded
+  if (typeof WaveSurfer === 'undefined') {
+    updateStatus('❌ ERROR: WaveSurfer library failed to load');
+  } else {
+    updateStatus('✓ WaveSurfer loaded. Initializing...');
+  }
+
   // Wait for the page to load
   window.addEventListener('load', function() {
-    var wavesurfer = WaveSurfer.create({
-      container: '#waveform',
-      waveColor: '#4169E1',
-      progressColor: '#008000',
-      url: 'https://cdn.download.ams.birds.cornell.edu/api/v1/asset/640535448/audio',
-      height: 128
-    });
+    try {
+      updateStatus('Creating WaveSurfer instance...');
+      
+      var wavesurfer = WaveSurfer.create({
+        container: '#waveform',
+        waveColor: '#4169E1',
+        progressColor: '#008000',
+        url: 'https://cdn.download.ams.birds.cornell.edu/api/v1/asset/640535448/audio',
+        height: 128,
+        backend: 'MediaElement'
+      });
 
-    // Add spectrogram plugin
-    wavesurfer.addPlugin(
-      WaveSurfer.spectrogram.create({
-        container: '#spectrogram',
-        labels: true,
-        height: 256
-      })
-    ).init(wavesurfer);
+      updateStatus('Adding spectrogram plugin...');
 
-    // Error handling
-    wavesurfer.on('error', function(error) {
-      console.error('WaveSurfer error:', error);
-      document.getElementById('waveform').innerHTML = '<p>Error loading audio. Check console for details.</p>';
-    });
+      // Add spectrogram plugin
+      wavesurfer.addPlugin(
+        WaveSurfer.spectrogram.create({
+          container: '#spectrogram',
+          labels: true,
+          height: 256
+        })
+      ).init(wavesurfer);
+
+      // Success message
+      wavesurfer.on('ready', function() {
+        updateStatus('✓ Audio and spectrogram loaded successfully!');
+      });
+
+      // Error handling
+      wavesurfer.on('error', function(error) {
+        updateStatus('❌ WaveSurfer error: ' + error);
+        console.error('WaveSurfer error:', error);
+      });
+
+      // Loading state
+      updateStatus('⏳ Loading audio file...');
+
+    } catch(e) {
+      updateStatus('❌ JavaScript error: ' + e.message);
+      console.error(e);
+    }
   });
 </script>
 </div>
