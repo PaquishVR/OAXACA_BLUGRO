@@ -1772,18 +1772,18 @@ included in these comparisons</p>
     updateStatus('✓ WaveSurfer loaded. Initializing...');
   }
 
-  // Wait for the page to load
   window.addEventListener('load', function() {
     try {
-      updateStatus('Creating WaveSurfer instance...');
+      updateStatus('Creating WaveSurfer instance with CORS workaround...');
       
       var wavesurfer = WaveSurfer.create({
         container: '#waveform',
         waveColor: '#4169E1',
         progressColor: '#008000',
-        url: 'https://cdn.download.ams.birds.cornell.edu/api/v1/asset/640535448/audio',
         height: 128,
-        backend: 'MediaElement'
+        backend: 'MediaElement',
+        mediaControls: true,
+        autoplay: false
       });
 
       updateStatus('Adding spectrogram plugin...');
@@ -1797,6 +1797,39 @@ included in these comparisons</p>
         })
       ).init(wavesurfer);
 
+      // Try loading with fetch to handle CORS
+      updateStatus('⏳ Fetching audio file with CORS workaround...');
+
+      fetch('https://cdn.download.ams.birds.cornell.edu/api/v1/asset/640535448/audio', {
+        method: 'GET',
+        mode: 'cors',
+        cache: 'no-cache',
+        headers: {
+          'Accept': 'audio/mpeg, audio/*'
+        }
+      })
+      .then(response => {
+        if (!response.ok) {
+          throw new Error('HTTP ' + response.status + ': ' + response.statusText);
+        }
+        return response.blob();
+      })
+      .then(blob => {
+        updateStatus('✓ Audio file received! Creating blob URL...');
+        const blobUrl = URL.createObjectURL(blob);
+        wavesurfer.load(blobUrl);
+        updateStatus('⏳ Loading audio file...');
+      })
+      .catch(error => {
+        updateStatus('❌ Fetch error: ' + error.message);
+        console.error('Fetch error:', error);
+        
+        // Fallback: try direct load
+        console.log('Trying direct load as fallback...');
+        updateStatus('⏳ Trying direct load fallback...');
+        wavesurfer.load('https://cdn.download.ams.birds.cornell.edu/api/v1/asset/640535448/audio');
+      });
+
       // Success message
       wavesurfer.on('ready', function() {
         updateStatus('✓ Audio and spectrogram loaded successfully!');
@@ -1807,9 +1840,6 @@ included in these comparisons</p>
         updateStatus('❌ WaveSurfer error: ' + error);
         console.error('WaveSurfer error:', error);
       });
-
-      // Loading state
-      updateStatus('⏳ Loading audio file...');
 
     } catch(e) {
       updateStatus('❌ JavaScript error: ' + e.message);
